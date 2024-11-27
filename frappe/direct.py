@@ -75,6 +75,7 @@ class FrappeJobShop:
                 continue
             j = job.Job(self.n_jobs)
             self.n_jobs += 1
+            predecessors = []
             for op in ops:
                 # if int(op["time_in_mins"]) == 0:
                 #     raise ValueError("Duration is 0")
@@ -91,6 +92,10 @@ class FrappeJobShop:
                 for wks in self.get_altertive_workstations(op["operation"]):
                     o.add_operation_option(self.rworkstations[wks], x)
 
+                if len(predecessors) > 0:
+                    o.add_predecessors(predecessors)
+
+                predecessors.append(self._jobshop.nr_of_operations)
                 # TODO: add predecessors
                 j.add_operation(o)
                 self._jobshop.add_operation(o)
