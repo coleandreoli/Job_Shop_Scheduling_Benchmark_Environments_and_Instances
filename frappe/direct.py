@@ -18,10 +18,7 @@ from scheduling_environment import job, operation, machine, jobShop
 class FrappeJobShop:
     def __init__(self):
         """
-        all data > work orders (wos)
-        work orders > operations
-
-        wo(op(machine))
+        wo(op(machine(alternative machines)))
 
         """
         self.number_jobs = 0
@@ -49,6 +46,19 @@ class FrappeJobShop:
     def get_altertive_workstations(self):
         return
 
+    def get_machines(self, wo):
+        for ops in wo:
+            for op in ops:
+                if not op["workstation"] in self.workstations.values():
+                    self.workstations[len(self.workstations)] = op["workstation"]
+
+        self.rworkstations = {v: k for k, v in self.workstations.items()}
+
+    def set_machines(self):
+        self._jobshop.set_nr_of_machines(len(self.workstations))
+        for i in range(len(self.workstations)):
+            self._jobshop.add_machine(machine.Machine(i))
+
     def parse_wo(self, wo):
         if all(element is None for element in wo):
             return
@@ -70,19 +80,6 @@ class FrappeJobShop:
 
             self._jobshop.add_job(j)
         self._jobshop.set_nr_of_jobs(self.n_jobs)
-
-    def get_machines(self, wo):
-        for ops in wo:
-            for op in ops:
-                if not op["workstation"] in self.workstations.values():
-                    self.workstations[len(self.workstations)] = op["workstation"]
-
-        self.rworkstations = {v: k for k, v in self.workstations.items()}
-
-    def set_machines(self):
-        self._jobshop.set_nr_of_machines(len(self.workstations))
-        for i in range(len(self.workstations)):
-            self._jobshop.add_machine(machine.Machine(i))
 
     def solve(self):
         parameters = {
