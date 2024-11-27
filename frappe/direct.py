@@ -42,7 +42,9 @@ class FrappeJobShop:
 
     def get_altertive_workstations(self, name_op):
         alternatives = []
-        for i in frappe.get_doc("Operation", name_op).as_dict()["alternative_workstations"]:
+        for i in frappe.get_doc("Operation", name_op).as_dict()[
+            "alternative_workstations"
+        ]:
             alternatives.append(i["workstation"])
         return alternatives
 
@@ -87,8 +89,8 @@ class FrappeJobShop:
                 for wks in self.get_altertive_workstations(op["operation"]):
                     print(wks)
                     o.add_operation_option(self.rworkstations[wks], x)
-                
-                #o.add_operation_option(self.rworkstations[op["workstation"]], x)
+
+                # o.add_operation_option(self.rworkstations[op["workstation"]], x)
 
                 j.add_operation(o)
                 self._jobshop.add_operation(o)
@@ -121,7 +123,6 @@ class FrappeJobShop:
         print("=================")
         print(self._jobshop.machines)
         print("=================")
-
 
     def main(self):
         wos = self.get_jobs()
