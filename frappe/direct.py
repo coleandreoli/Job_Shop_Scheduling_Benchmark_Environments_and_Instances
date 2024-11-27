@@ -63,14 +63,12 @@ class FrappeJobShop:
                 continue
             j = job.Job(self.n_jobs)
             self.n_jobs += 1
-            print(self.n_jobs)
-            print(ops)
 
             for op in ops:
                 # if int(op["time_in_mins"]) == 0:
                 #     raise ValueError("Duration is 0")
-                
-                # TODO: fix data 
+
+                # TODO: fix data
                 if int(op["time_in_mins"]) == 0:
                     x = 5
                 else:
@@ -80,9 +78,7 @@ class FrappeJobShop:
                 self.operations[len(self.operations)] = op["operation"]
 
                 # TODO: get alteratives
-                o.add_operation_option(
-                        self.rworkstations[op["workstation"]], x
-                    )
+                o.add_operation_option(self.rworkstations[op["workstation"]], x)
 
                 j.add_operation(o)
                 self._jobshop.add_operation(o)
@@ -104,7 +100,7 @@ class FrappeJobShop:
 
     def sanity(self):
         print(self._jobshop)
-        #print(self.workstations)
+        # print(self.workstations)
         print("=================")
         print(self._jobshop.machines)
         print("=================")
@@ -120,7 +116,7 @@ class FrappeJobShop:
         self.set_machines()
 
         self.parse_wo(wo)
-        #self.sanity()
+        # self.sanity()
         self.solve()
 
 
