@@ -96,7 +96,7 @@ class FrappeJobShop:
                     o.add_predecessors(predecessors)
 
                 predecessors.append(self._jobshop.nr_of_operations)
-                # TODO: add predecessors
+
                 j.add_operation(o)
                 self._jobshop.add_operation(o)
 
