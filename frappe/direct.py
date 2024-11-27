@@ -102,27 +102,31 @@ class FrappeJobShop:
         return frappe.get_all("Work Order")
 
     def get_wo(self, wos):
-            process_wo = lambda wo: self.get_op(frappe.get_doc("Work Order", wo["name"]).as_dict()["operations"])
+            process_wo = lambda wo: frappe.get_doc("Work Order", wo["name"]).as_dict()["operations"]
             return list(map(process_wo, wos))
+    
+
             #print(ops_results)
 
-    def get_op(self, ops):
-         for op in ops:
-            print(op["operation"])
-            print(op["time_in_mins"])
-            print(op["workstation"])
+
+    def parse_wo(self, wo):
+        if all(element is None for element in wo):
+            return
+        print(wo[0][0].keys())
+        for ops in wo:
+            print(ops)
+            print(ops["operation"])
+            print(ops["time_in_mins"])
+            print(ops["workstation"])
 
     def get_machines(self):
         pass
 
     def main(self):        
         wos = self.get_jobs()
-        ops = self.get_wo(wos)
-        mac = self.get_op(ops)
-        # process_wo = lambda wo: self.get_operations(frappe.get_doc("Work Order", wo["name"]).as_dict()["operations"])
-        # ops_results = list(map(process_wo, wos))
-
-        # process_op = lambda op: self.get_o
+        wo = self.get_wo(wos)
+        #self.parse_wo(wo)
+        print(wo)
 
 if __name__ == '__main__':
     foo = FrappeJobShop()

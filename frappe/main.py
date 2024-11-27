@@ -1,6 +1,6 @@
 PRINTS = False
 OUTPUT = False
-MODE = 0
+MODE = 2
 
 import os
 import scheduling_environment.simulationEnv as sim
@@ -94,7 +94,7 @@ for i, wos in enumerate(frappe.get_all("Work Order")):
     job["operations"] = operations
 
     cole.append(job)
-    if i == 3:
+    if i == 4:
         break
 
 for i in cole:
@@ -146,6 +146,8 @@ if MODE == 0:
 
     plt = plot_gantt_chart(jobShopEnv)
     plt.show()
+
+
 elif MODE == 1:
     parameters = {
         "instance": {"problem_instance": "custom_problem_instance"},
@@ -157,6 +159,36 @@ elif MODE == 1:
     results, jobShopEnv = run_CP_SAT(jobShopEnv, **parameters)
     plt = plot_gantt_chart(jobShopEnv)
     plt.show()
+
+elif MODE == 2:
+        jobShopEnv = parse(processing_info)
+        print('Job shop setup complete')
+
+        # TEST GA:
+        # from solution_methods.GA.src.initialization import initialize_run
+        # from solution_methods.GA.run_GA import run_GA
+        # import multiprocessing
+        #
+        # parameters = {"instance": {"problem_instance": "custom_problem_instance"},
+        #              "algorithm": {"population_size": 8, "ngen": 10, "seed": 5, "indpb": 0.2, "cr": 0.7, "mutiprocessing": True},
+        #              "output": {"logbook": True}
+        #             }
+        #
+        # pool = multiprocessing.Pool()
+        # population, toolbox, stats, hof = initialize_run(jobShopEnv, pool, **parameters)
+        # makespan, jobShopEnv = run_GA(jobShopEnv, population, toolbox, stats, hof, **parameters)
+
+        # TEST CP_SAT:
+        parameters = {"instance": {"problem_instance": "custom_fjsp_sdst"},
+                    "solver": {"time_limit": 3600, "model": "fjsp_sdst"},
+                    "output": {"logbook": True}
+                    }
+
+        jobShopEnv = parse(processing_info)
+        results, jobShopEnv = run_CP_SAT(jobShopEnv, **parameters)
+        plt = plot_gantt_chart(jobShopEnv)
+        plt.show()
+
 
 if OUTPUT is True:
     with open(r"/home/cole/cole_scripts/job_scheduling_env/results.json", "w") as file:
