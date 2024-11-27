@@ -10,6 +10,7 @@ import numpy as np
 
 os.chdir("/home/cole/madrid/sites")
 import frappe
+
 frappe.connect("test", db_name="cole")
 from scheduling_environment import job, operation, machine, jobShop
 
@@ -32,17 +33,19 @@ class FrappeJobShop:
         self._jobshop = jobShop.JobShop()
 
         self.n_jobs = 0
-        #self.n_operations = 0
-        #self.n_machines = 0
-    
+        # self.n_operations = 0
+        # self.n_machines = 0
+
     def get_jobs(self):
         # list of work orders
         return frappe.get_all("Work Order")
 
     def get_wo(self, wos):
-            process_wo = lambda wo: frappe.get_doc("Work Order", wo["name"]).as_dict()["operations"]
-            return list(map(process_wo, wos))
-    
+        process_wo = lambda wo: frappe.get_doc("Work Order", wo["name"]).as_dict()[
+            "operations"
+        ]
+        return list(map(process_wo, wos))
+
     def get_altertive_workstations(self):
         return
 
@@ -58,11 +61,13 @@ class FrappeJobShop:
                 o = operation.Operation(j, j.job_id, self._jobshop.nr_of_operations)
                 self.operations[len(self.operations)] = op["operation"]
                 # TODO: get alteratives
-                o.add_operation_option(self.rworkstations[op["workstation"]], int(op["time_in_mins"]))
-                
+                o.add_operation_option(
+                    self.rworkstations[op["workstation"]], int(op["time_in_mins"])
+                )
+
                 j.add_operation(o)
                 self._jobshop.add_operation(o)
-                
+
             self._jobshop.add_job(j)
         self._jobshop.set_nr_of_jobs(self.n_jobs)
 
@@ -71,27 +76,27 @@ class FrappeJobShop:
             for op in ops:
                 if not op["workstation"] in self.workstations.values():
                     self.workstations[len(self.workstations)] = op["workstation"]
-        
+
         self.rworkstations = {v: k for k, v in self.workstations.items()}
 
     def set_machines(self):
         self._jobshop.set_nr_of_machines(len(self.workstations))
         for i in range(len(self.workstations)):
             self._jobshop.add_machine(machine.Machine(i))
-        
 
     def solve(self):
-        parameters = {"instance": {"problem_instance": "custom_problem_instance"},
-             "solver": {"time_limit": 3600, "model": "fjsp"},
-             "output": {"logbook": True}
-             }
+        parameters = {
+            "instance": {"problem_instance": "custom_problem_instance"},
+            "solver": {"time_limit": 3600, "model": "fjsp"},
+            "output": {"logbook": True},
+        }
 
         results, jobShopEnv = run_CP_SAT(self._jobshop, **parameters)
 
         plt = plot_gantt_chart(jobShopEnv)
         plt.show()
 
-    def main(self):        
+    def main(self):
         wos = self.get_jobs()
         wo = self.get_wo(wos)
 
@@ -101,6 +106,7 @@ class FrappeJobShop:
         self.parse_wo(wo)
         self.solve()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     foo = FrappeJobShop()
     foo.main()
