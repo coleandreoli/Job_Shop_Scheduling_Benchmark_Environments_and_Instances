@@ -30,8 +30,12 @@ class FrappeJobShop:
         # self.n_operations = 0
         # self.n_machines = 0
 
-    def get_jobs(self):
-        # list of work orders
+        self.results = None
+        self.jobShopEnv = None
+
+    @staticmethod
+    def get_wo_names():
+        # list of work orders names
         return frappe.get_all("Work Order")
 
     def get_wo(self, wos):
@@ -87,7 +91,6 @@ class FrappeJobShop:
                 # TODO: get alteratives
                 o.add_operation_option(self.rworkstations[op["workstation"]], x)
                 for wks in self.get_altertive_workstations(op["operation"]):
-                    print(wks)
                     o.add_operation_option(self.rworkstations[wks], x)
 
                 # o.add_operation_option(self.rworkstations[op["workstation"]], x)
@@ -106,8 +109,12 @@ class FrappeJobShop:
         }
 
         results, jobShopEnv = run_CP_SAT(self._jobshop, **parameters)
+        self.results = results
+        self.jobShopEnv = jobShopEnv
+        return results, jobShopEnv
 
-        plt = plot_gantt_chart(jobShopEnv)
+    def plot(self):
+        plt = plot_gantt_chart(self.jobShopEnv)
         plt.show()
 
     def sanity(self):
@@ -124,18 +131,19 @@ class FrappeJobShop:
         print(self._jobshop.machines)
         print("=================")
 
-    def main(self):
-        wos = self.get_jobs()
-        wo = self.get_wo(wos)
+    def main(self, wo_names):
+        # wos = self.get_wo_names()
+        wos = self.get_wo(wo_names)
 
-        self.get_machines(wo)
+        self.get_machines(wos)
         self.set_machines()
 
-        self.parse_wo(wo)
-        self.sanity()
+        self.parse_wo(wos)
+        # self.sanity()
         self.solve()
+        self.plot()
 
 
 if __name__ == "__main__":
     foo = FrappeJobShop()
-    foo.main()
+    foo.main(FrappeJobShop.get_wo_names())
