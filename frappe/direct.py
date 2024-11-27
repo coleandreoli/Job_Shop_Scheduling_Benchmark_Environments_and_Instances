@@ -40,15 +40,21 @@ class FrappeJobShop:
         ]
         return list(map(process_wo, wos))
 
-    def get_altertive_workstations(self):
-        return
+    def get_altertive_workstations(self, name_op):
+        alternatives = []
+        for i in frappe.get_doc("Operation", name_op).as_dict()["alternative_workstations"]:
+            alternatives.append(i["workstation"])
+        return alternatives
 
     def get_machines(self, wo):
         for ops in wo:
             for op in ops:
                 if not op["workstation"] in self.workstations.values():
                     self.workstations[len(self.workstations)] = op["workstation"]
-
+                # Edge case were alternative is not populated
+                for wks in self.get_altertive_workstations(op["operation"]):
+                    if not wks in self.workstations.values():
+                        self.workstations[len(self.workstations)] = wks
         self.rworkstations = {v: k for k, v in self.workstations.items()}
 
     def set_machines(self):
@@ -76,9 +82,13 @@ class FrappeJobShop:
 
                 o = operation.Operation(j, j.job_id, self._jobshop.nr_of_operations)
                 self.operations[len(self.operations)] = op["operation"]
-
                 # TODO: get alteratives
                 o.add_operation_option(self.rworkstations[op["workstation"]], x)
+                for wks in self.get_altertive_workstations(op["operation"]):
+                    print(wks)
+                    o.add_operation_option(self.rworkstations[wks], x)
+                
+                #o.add_operation_option(self.rworkstations[op["workstation"]], x)
 
                 j.add_operation(o)
                 self._jobshop.add_operation(o)
@@ -89,7 +99,7 @@ class FrappeJobShop:
     def solve(self):
         parameters = {
             "instance": {"problem_instance": "custom_problem_instance"},
-            "solver": {"time_limit": 3600, "model": "jsp"},
+            "solver": {"time_limit": 3600, "model": "fjsp"},
             "output": {"logbook": True},
         }
 
@@ -100,13 +110,18 @@ class FrappeJobShop:
 
     def sanity(self):
         print(self._jobshop)
-        # print(self.workstations)
+        print(len(self._jobshop.jobs))
+        print(len(self._jobshop.operations))
+        print(len(self._jobshop.machines))
+
         print("=================")
-        print(self._jobshop.machines)
+        print(self._jobshop.jobs)
         print("=================")
         print(self._jobshop.operations)
         print("=================")
-        print(self._jobshop.jobs)
+        print(self._jobshop.machines)
+        print("=================")
+
 
     def main(self):
         wos = self.get_jobs()
@@ -116,7 +131,7 @@ class FrappeJobShop:
         self.set_machines()
 
         self.parse_wo(wo)
-        # self.sanity()
+        self.sanity()
         self.solve()
 
 
