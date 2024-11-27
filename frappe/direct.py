@@ -13,69 +13,6 @@ import frappe
 frappe.connect("test", db_name="cole")
 from scheduling_environment import job, operation, machine, jobShop
 
-#js = jobShop.JobShop()
-
-
-# number_jobs = 0
-# number_total_machines = 0
-# number_operations = 0
-
-# workstations = {}
-# operations = {}
-
-# cole = []
-
-# for i, wos in enumerate(frappe.get_all("Work Order")):
-#     wo = frappe.get_doc("Work Order", wos["name"]).as_dict()
-
-#     # Jobs
-#     jb = job.Job(i)
-#     number_jobs += 1
-
-
-#     operations = []
-#     pred = 0
-#     for j, ops in enumerate(wo["operations"]):
-#         if PRINTS == True:
-#             print(ops["operation"])
-#             print(ops["time_in_mins"])
-#             print(ops["workstation"])
-
-#         if pred == 0:
-#             _pred = None
-#             pred += 1
-#         else:
-#             _pred = number_operations - 1
-
-#         # Operations
-#         operation = {
-#             "operation_id": number_operations,
-#             "processing_times": {},
-#             "predecessor": _pred,
-#         }
-
-#         operations[ops["operation"]] = 1212
-#         op = operation(jb, i, number_operations)
-#         number_operations += 1
-
-#         # Machines
-#         machine_name = f'{ops["workstation"]}'
-#         processing_time = {machine_name: ops["time_in_mins"]}
-
-
-#         y.add_workstation(processing_time)
-#         number_total_machines += 1
-#         operation["processing_times"] = processing_time
-#         # operation['processing_times'] = y.processing_times(processing_time)
-#         operations.append(operation)
-
-#     #job["operations"] = operations
-#     js.add_job()
-
-#     cole.append(job)
-#     if i == 3:
-#         break
-
 
 class FrappeJobShop:
     def __init__(self):
@@ -90,12 +27,13 @@ class FrappeJobShop:
         self.number_total_machines = 0
         self.number_operations = 0
         self.workstations = {}
+        self.rworkstations = {}
         self.operations = {}
         self._jobshop = jobShop.JobShop()
 
         self.n_jobs = 0
-        self.n_operations = 0
-        self.n_machines = 0
+        #self.n_operations = 0
+        #self.n_machines = 0
     
     def get_jobs(self):
         # list of work orders
@@ -105,28 +43,63 @@ class FrappeJobShop:
             process_wo = lambda wo: frappe.get_doc("Work Order", wo["name"]).as_dict()["operations"]
             return list(map(process_wo, wos))
     
-
-            #print(ops_results)
-
+    def get_altertive_workstations(self):
+        return
 
     def parse_wo(self, wo):
         if all(element is None for element in wo):
             return
-        print(wo[0][0].keys())
-        for ops in wo:
-            print(ops)
-            print(ops["operation"])
-            print(ops["time_in_mins"])
-            print(ops["workstation"])
 
-    def get_machines(self):
-        pass
+        for ops in wo:
+            j = job.Job(self.n_jobs)
+            self.n_jobs += 1
+
+            for op in ops:
+                o = operation.Operation(j, j.job_id, self._jobshop.nr_of_operations)
+                self.operations[len(self.operations)] = op["operation"]
+                # TODO: get alteratives
+                o.add_operation_option(self.rworkstations[op["workstation"]], int(op["time_in_mins"]))
+                
+                j.add_operation(o)
+                self._jobshop.add_operation(o)
+                
+            self._jobshop.add_job(j)
+        self._jobshop.set_nr_of_jobs(self.n_jobs)
+
+    def get_machines(self, wo):
+        for ops in wo:
+            for op in ops:
+                if not op["workstation"] in self.workstations.values():
+                    self.workstations[len(self.workstations)] = op["workstation"]
+        
+        self.rworkstations = {v: k for k, v in self.workstations.items()}
+
+    def set_machines(self):
+        self._jobshop.set_nr_of_machines(len(self.workstations))
+        for i in range(len(self.workstations)):
+            self._jobshop.add_machine(machine.Machine(i))
+        
+
+    def solve(self):
+        parameters = {"instance": {"problem_instance": "custom_problem_instance"},
+             "solver": {"time_limit": 3600, "model": "fjsp"},
+             "output": {"logbook": True}
+             }
+
+        results, jobShopEnv = run_CP_SAT(self._jobshop, **parameters)
+
+        plt = plot_gantt_chart(jobShopEnv)
+        plt.show()
 
     def main(self):        
         wos = self.get_jobs()
         wo = self.get_wo(wos)
-        #self.parse_wo(wo)
-        print(wo)
+
+        self.get_machines(wo)
+        self.set_machines()
+
+        self.parse_wo(wo)
+        self.solve()
 
 if __name__ == '__main__':
     foo = FrappeJobShop()
