@@ -6,7 +6,7 @@ from solution_methods.GA.src.initialization import initialize_run
 from solution_methods.GA.run_GA import run_GA
 from solution_methods.CP_SAT.run_cp_sat import run_CP_SAT
 import numpy as np
-
+import warnings
 
 os.chdir("/home/cole/madrid/sites")
 import frappe
@@ -27,8 +27,6 @@ class FrappeJobShop:
         self._jobshop = jobShop.JobShop()
 
         self.n_jobs = 0
-        # self.n_operations = 0
-        # self.n_machines = 0
 
         self.results = None
         self.jobShopEnv = None
@@ -77,20 +75,14 @@ class FrappeJobShop:
             self.n_jobs += 1
             predecessors = []
             for op in ops:
-                # if int(op["time_in_mins"]) == 0:
-                #     raise ValueError("Duration is 0")
-
-                # TODO: fix data
-                if int(op["time_in_mins"]) == 0:
-                    x = 5
-                else:
-                    x = int(op["time_in_mins"])
+                # Durations of < 1 sec will be rounded
+                op_time = int(round(op["time_in_mins"] * 60))
 
                 o = operation.Operation(j, j.job_id, self._jobshop.nr_of_operations)
                 self.operations[len(self.operations)] = op["operation"]
-                o.add_operation_option(self.rworkstations[op["workstation"]], x)
+                o.add_operation_option(self.rworkstations[op["workstation"]], op_time)
                 for wks in self.get_altertive_workstations(op["operation"]):
-                    o.add_operation_option(self.rworkstations[wks], x)
+                    o.add_operation_option(self.rworkstations[wks], op_time)
 
                 if len(predecessors) > 0:
                     o.add_predecessors(predecessors)

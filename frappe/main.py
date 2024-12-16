@@ -10,194 +10,265 @@ from solution_methods.GA.src.initialization import initialize_run
 from solution_methods.GA.run_GA import run_GA
 from solution_methods.CP_SAT.run_cp_sat import run_CP_SAT
 import numpy as np
-import matplotlib
-matplotlib.use("Qt5Agg")
+import warnings
 
 os.chdir("/home/cole/madrid/sites")
 import frappe
+
 frappe.connect("test", db_name="cole")
+from scheduling_environment import job, operation, machine, jobShop
 
 
-class Workstations:
-    def __init__(self) -> None:
-        self._workstations = []
-        self._mapped_names = {}
+# class Workstations:
+#     def __init__(self) -> None:
+#         self._workstations = []
+#         self._mapped_names = {}
 
-    def add_workstation(self, machine: dict):
-        for ma in machine.keys():
-            if ma not in self._workstations:
-                self._workstations.append(ma)
+#     def add_workstation(self, machine: dict):
+#         for ma in machine.keys():
+#             if ma not in self._workstations:
+#                 self._workstations.append(ma)
 
-    @property
-    def workstations(self):
-        return self._workstations
+#     @property
+#     def workstations(self):
+#         return self._workstations
 
-    @property
-    def mapped_names(self):
-        return self._mapped_names
+#     @property
+#     def mapped_names(self):
+#         return self._mapped_names
 
-    def processing_times(self, machine):
-        # all other workstations are 0 except in machine
-        processing_time = {}
-        for i, wo in enumerate(self._workstations):
-            self._mapped_names[f"machine_{i+1}"] = wo
-            if wo not in machine:
-                processing_time[f"machine_{i+1}"] = 1
-            else:
-                processing_time[f"machine_{i+1}"] = int(machine[wo])
-        return processing_time
+#     def processing_times(self, machine):
+#         # all other workstations are 0 except in machine
+#         processing_time = {}
+#         for i, wo in enumerate(self._workstations):
+#             self._mapped_names[f"machine_{i+1}"] = wo
+#             if wo not in machine:
+#                 processing_time[f"machine_{i+1}"] = 1
+#             else:
+#                 processing_time[f"machine_{i+1}"] = int(machine[wo])
+#         return processing_time
 
-    @property
-    def num_of_workstations(self):
-        return len(self._workstations)
+#     @property
+#     def num_of_workstations(self):
+#         return len(self._workstations)
+
 
 number_jobs = 0
 number_total_machines = 0
 number_operations = 0
 workstations = {}
 cole = []
-y = Workstations()
 
-for i, wos in enumerate(frappe.get_all("Work Order")):
-    wo = frappe.get_doc("Work Order", wos["name"]).as_dict()
-    job = {"job_id": i, "operations": []}
-    number_jobs += 1
-    operations = []
-    pred = 0
+class FrappeJobShop:
+    def __init__(self):
+        """
+        wo(op(machine(alternative machines)))
 
-    for j, ops in enumerate(wo["operations"]):
-        if PRINTS == True:
-            print(ops["operation"])
-            print(ops["time_in_mins"])
-            print(ops["workstation"])
-        if pred == 0:
-            _pred = None
-            pred += 1
-        else:
-            _pred = number_operations - 1
+        """
+        self.workstations = {}
+        self.rworkstations = {}
+        self.operations = {}
 
-        operation = {
-            "operation_id": number_operations,
-            "processing_times": {},
-            "predecessor": _pred,
+        self.n_jobs = 0
+        self.n_operations = 0
+        self.n_machines = 0
+
+        self.results = None
+        self.jobShopEnv = None
+
+        self.processing_info = {
+            "instance_name": "custom_problem_instance",
+            "jobs": [],
+            "sequence_dependent_setup_times" : {},
         }
-        number_operations += 1
 
-        machine_name = f'{ops["workstation"]}'
-        processing_time = {machine_name: ops["time_in_mins"]}
-        y.add_workstation(processing_time)
-        number_total_machines += 1
-        operation["processing_times"] = processing_time
-        # operation['processing_times'] = y.processing_times(processing_time)
-        operations.append(operation)
+    @staticmethod
+    def get_wo_names():
+        # list of work orders names
+        return frappe.get_all("Work Order")
 
-    job["operations"] = operations
+    def get_wo(self, wos):
+        process_wo = lambda wo: frappe.get_doc("Work Order", wo["name"]).as_dict()[
+            "operations"
+        ]
+        return list(map(process_wo, wos))
 
-    cole.append(job)
-    if i == 4:
-        break
+    def get_altertive_workstations(self, name_op):
+        alternatives = []
+        for i in frappe.get_doc("Operation", name_op).as_dict()[
+            "alternative_workstations"
+        ]:
+            alternatives.append(i["workstation"])
+        return alternatives
 
-for i in cole:
-    for j in i["operations"]:
-        j["processing_times"] = y.processing_times(j["processing_times"])
+    def get_machines(self, wo):
+        for ops in wo:
+            for op in ops:
+                if not op["workstation"] in self.workstations.values():
+                    self.workstations[f'machine_{len(self.workstations)+1}'] = op["workstation"]
+                # Edge case were alternative is not populated
+                for wks in self.get_altertive_workstations(op["operation"]):
+                    if not wks in self.workstations.values():
+                        self.workstations[f'machine_{len(self.workstations)+1}'] = wks
+        # Reversed workstations dict
+        self.rworkstations = {v: k for k, v in self.workstations.items()}
+        self.n_machines = len(self.rworkstations)
+        self.processing_info["nr_machines"] = self.n_machines
 
+    def parse_wo(self, wo):
+        for ops in wo:
+            # TODO: fix data
+            if len(ops) == 0:
+                continue
 
-processing_info = {
-    "instance_name": "custom_problem_instance",
-    "nr_machines": y.num_of_workstations,
-    "jobs": cole,
-    "sequence_dependent_setup_times": {
-        f"machine_{i+1}": np.zeros(
-            (number_operations, number_operations), dtype=int
-        ).tolist()
-        for i in range(y.num_of_workstations)
-    },
-}
-
-print(y.mapped_names)
-import json
-
-with open(
-    r"/home/cole/cole_scripts/job_scheduling_env/processing_info.json", "w"
-) as file:
-    json.dump(processing_info, file, indent=4, sort_keys=True)
-
-
-if MODE == 0:
-    parameters = {
-        "instance": {"problem_instance": "custom_problem_instance"},
-        "algorithm": {
-            "population_size": 10,
-            "ngen": 10,
-            "seed": 5,
-            "cr": 0.7,
-            "indpb": 0.2,
-            "multiprocessing": True,
-        },
-        "output": {"logbook": True},
-    }
-
-    jobShopEnv = parse(processing_info)
-    population, toolbox, stats, hof = initialize_run(jobShopEnv, **parameters)
-
-    makespan, jobShopEnv = run_GA(
-        jobShopEnv, population, toolbox, stats, hof, **parameters
-    )
-
-    plt = plot_gantt_chart(jobShopEnv)
-    plt.show()
-
-
-elif MODE == 1:
-    parameters = {
-        "instance": {"problem_instance": "custom_problem_instance"},
-        "solver": {"time_limit": 10000, "model": "fjsp_sdst"},
-        "output": {"logbook": True},
-    }
-
-    jobShopEnv = parse(processing_info)
-    results, jobShopEnv = run_CP_SAT(jobShopEnv, **parameters)
-    plt = plot_gantt_chart(jobShopEnv)
-    plt.show()
-
-elif MODE == 2:
-        jobShopEnv = parse(processing_info)
-        print('Job shop setup complete')
-
-        # TEST GA:
-        # from solution_methods.GA.src.initialization import initialize_run
-        # from solution_methods.GA.run_GA import run_GA
-        # import multiprocessing
-        #
-        # parameters = {"instance": {"problem_instance": "custom_problem_instance"},
-        #              "algorithm": {"population_size": 8, "ngen": 10, "seed": 5, "indpb": 0.2, "cr": 0.7, "mutiprocessing": True},
-        #              "output": {"logbook": True}
-        #             }
-        #
-        # pool = multiprocessing.Pool()
-        # population, toolbox, stats, hof = initialize_run(jobShopEnv, pool, **parameters)
-        # makespan, jobShopEnv = run_GA(jobShopEnv, population, toolbox, stats, hof, **parameters)
-
-        # TEST CP_SAT:
-        parameters = {"instance": {"problem_instance": "custom_fjsp_sdst"},
-                    "solver": {"time_limit": 3600, "model": "fjsp_sdst"},
-                    "output": {"logbook": True}
+            job = {
+                "job_id": self.n_jobs,
+                "operations": [],
+                   }
+            
+            self.n_jobs += 1
+            predecessors = None
+            for op in ops:
+                if op["time_in_mins"]*60 != int(op["time_in_mins"]*60):
+                    raise ValueError(f'Operation: {op["operation"]} contains < single precision decimal time type: {op["time_in_mins"]}')
+                
+                op_time = int(op["time_in_mins"] * 60)
+                o = {
+                    "operation_id": self.n_operations,
+                    "processing_times": {},
+                    "predecessor": None,
                     }
 
-        jobShopEnv = parse(processing_info)
-        results, jobShopEnv = run_CP_SAT(jobShopEnv, **parameters)
-        plt = plot_gantt_chart(jobShopEnv)
+                self.n_operations += 1
+
+            
+                m = {}
+                
+                #print(o["processing_times"])
+                #print(op["workstation"])
+
+                #o = operation.Operation(j, j.job_id, self._jobshop.nr_of_operations)
+                #self.operations[len(self.operations)] = op["operation"]
+                #o.add_operation_option(self.rworkstations[op["workstation"]], op_time)
+                m[self.rworkstations[op["workstation"]]] = op_time
+
+                for wks in self.get_altertive_workstations(op["operation"]):
+                    #o.add_operation_option(self.rworkstations[wks], op_time)
+                    m[self.rworkstations[wks]] = op_time
+                if len(m) == 0:
+                    raise ValueError("no assigned machines")
+
+                o["processing_times"] = m
+
+                if predecessors is not None:
+                    o["predecessor"] = self.n_operations - 2
+                predecessors = self.n_operations - 2
+
+                job["operations"].append(o)
+
+                #predecessors.append(self._jobshop.nr_of_operations)
+                self.processing_info["jobs"].append(job)
+                #j.add_operation(o)
+                #self._jobshop.add_operation(o)
+
+
+        # for i, wos in enumerate(frappe.get_all("Work Order")):
+        #     wo = frappe.get_doc("Work Order", wos["name"]).as_dict()
+        #     job = {"job_id": i, "operations": []}
+        #     number_jobs += 1
+        #     operations = []
+        #     pred = 0
+
+        #     for j, ops in enumerate(wo["operations"]):
+        #         if PRINTS == True:
+        #             print(ops["operation"])
+        #             print(ops["time_in_mins"])
+        #             print(ops["workstation"])
+        #         if pred == 0:
+        #             _pred = None
+        #             pred += 1
+        #         else:
+        #             _pred = number_operations - 1
+
+        #         operation = {
+        #             "operation_id": number_operations,
+        #             "processing_times": {},
+        #             "predecessor": _pred,
+        #         }
+        #         number_operations += 1
+
+        #         if ops["time_in_mins"]*60 != int(ops["time_in_mins"]*60):
+        #             raise ValueError(f'Operation: {ops["operation"]} contains < single precision decimal time type: {ops["time_in_mins"]}')
+                
+        #         op_time = int(ops["time_in_mins"] * 60)
+
+        #         machine_name = f'{ops["workstation"]}'
+        #         processing_time = {machine_name: op_time}
+        #         #y.add_workstation(processing_time)
+        #         number_total_machines += 1
+        #         operation["processing_times"] = processing_time
+        #         # operation['processing_times'] = y.processing_times(processing_time)
+        #         operations.append(operation)
+
+        #     job["operations"] = operations
+
+        #     cole.append(job)
+        #     if i == 4:
+        #         break
+
+        # for i in cole:
+        #     for j in i["operations"]:
+        #         j["processing_times"] = y.processing_times(j["processing_times"])
+
+    def get_sequence_dependent_setup_times(self):
+        self.processing_info["sequence_dependent_setup_times"] = {
+            self.rworkstations[i] : np.zeros((1000, 1000), dtype=int).tolist()
+                for i in self.rworkstations
+                    }
+
+    def solve(self):
+        parameters = {
+            "instance": {"problem_instance": "custom_problem_instance"},
+            "solver": {"time_limit": 3600, "model": "fjsp"},
+            "output": {"logbook": True},
+        }
+        jobShopEnv = parse(self.processing_info)
+        self.results, self.jobShopEnv = run_CP_SAT(jobShopEnv, **parameters)
+        #return results, jobShopEnv
+
+    def plot(self):
+        plt = plot_gantt_chart(self.jobShopEnv)
         plt.show()
 
+    def sanity(self):
+        self._jobshop = parse(self.processing_info)
+        print(self._jobshop)
+        print(len(self._jobshop.jobs))
+        print(len(self._jobshop.operations))
+        print(len(self._jobshop.machines))
 
-if OUTPUT is True:
-    with open(r"/home/cole/cole_scripts/job_scheduling_env/results.json", "w") as file:
-        json.dump(results, file, indent=4, sort_keys=True)
-    print(results)
+        print("=================")
+        print(self._jobshop.jobs)
+        print("=================")
+        print(self._jobshop.operations)
+        print("=================")
+        print(self._jobshop.machines)
+        print("=================")
 
-    import pickle
+    def main(self, wo_names):
+        # wos = self.get_wo_names()
+        wos = self.get_wo(wo_names)
+        self.get_machines(wos)
+        self.parse_wo(wos)
+        self.get_sequence_dependent_setup_times()
 
-    with open(
-        r"/home/cole/cole_scripts/job_scheduling_env/jobShopEnv.pkl", "wb"
-    ) as file:
-        pickle.dump(jobShopEnv, file)
+        ##print(self.processing_info)
+        #self.sanity()
+        self.solve()
+        self.plot()
+
+
+if __name__ == "__main__":
+    wo_names = FrappeJobShop.get_wo_names()
+    foo = FrappeJobShop()
+    foo.main(wo_names)
