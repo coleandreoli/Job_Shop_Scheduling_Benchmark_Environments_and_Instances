@@ -143,13 +143,6 @@ class FrappeJobShop:
 
             
                 m = {}
-                
-                #print(o["processing_times"])
-                #print(op["workstation"])
-
-                #o = operation.Operation(j, j.job_id, self._jobshop.nr_of_operations)
-                #self.operations[len(self.operations)] = op["operation"]
-                #o.add_operation_option(self.rworkstations[op["workstation"]], op_time)
                 m[self.rworkstations[op["workstation"]]] = op_time
 
                 for wks in self.get_altertive_workstations(op["operation"]):
@@ -166,59 +159,7 @@ class FrappeJobShop:
 
                 job["operations"].append(o)
 
-                #predecessors.append(self._jobshop.nr_of_operations)
                 self.processing_info["jobs"].append(job)
-                #j.add_operation(o)
-                #self._jobshop.add_operation(o)
-
-
-        # for i, wos in enumerate(frappe.get_all("Work Order")):
-        #     wo = frappe.get_doc("Work Order", wos["name"]).as_dict()
-        #     job = {"job_id": i, "operations": []}
-        #     number_jobs += 1
-        #     operations = []
-        #     pred = 0
-
-        #     for j, ops in enumerate(wo["operations"]):
-        #         if PRINTS == True:
-        #             print(ops["operation"])
-        #             print(ops["time_in_mins"])
-        #             print(ops["workstation"])
-        #         if pred == 0:
-        #             _pred = None
-        #             pred += 1
-        #         else:
-        #             _pred = number_operations - 1
-
-        #         operation = {
-        #             "operation_id": number_operations,
-        #             "processing_times": {},
-        #             "predecessor": _pred,
-        #         }
-        #         number_operations += 1
-
-        #         if ops["time_in_mins"]*60 != int(ops["time_in_mins"]*60):
-        #             raise ValueError(f'Operation: {ops["operation"]} contains < single precision decimal time type: {ops["time_in_mins"]}')
-                
-        #         op_time = int(ops["time_in_mins"] * 60)
-
-        #         machine_name = f'{ops["workstation"]}'
-        #         processing_time = {machine_name: op_time}
-        #         #y.add_workstation(processing_time)
-        #         number_total_machines += 1
-        #         operation["processing_times"] = processing_time
-        #         # operation['processing_times'] = y.processing_times(processing_time)
-        #         operations.append(operation)
-
-        #     job["operations"] = operations
-
-        #     cole.append(job)
-        #     if i == 4:
-        #         break
-
-        # for i in cole:
-        #     for j in i["operations"]:
-        #         j["processing_times"] = y.processing_times(j["processing_times"])
 
     def get_sequence_dependent_setup_times(self):
         self.processing_info["sequence_dependent_setup_times"] = {
