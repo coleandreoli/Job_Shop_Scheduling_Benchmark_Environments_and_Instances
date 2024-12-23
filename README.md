@@ -44,8 +44,8 @@ graph LR
 ```python
 from frappe_parser import FrappeJobShop
 
-  wo_tree = [ <list of workorders I want to schedule> ]
-  foo = FrappeJobShop(wo_tree)
+  wo_names = [ <list of workorders I want to schedule> ]
+  foo = FrappeJobShop(wo_names)
   foo.solve_fjsp()
   foo.plot()
 ```
@@ -54,8 +54,8 @@ from frappe_parser import FrappeJobShop
 # In the future
 from frappe_parser import FrappeJobShop
 
-  wo_names = # <Tree type object of work order implying work order prescedence >
-  foo = FrappeJobShop(wo_names)
+  wo_tree = # <Tree type object of work order implying work order prescedence >
+  foo = FrappeJobShop(wo_tree)
   foo.solve_ga()
   schedule = foo.schedule
 ```
