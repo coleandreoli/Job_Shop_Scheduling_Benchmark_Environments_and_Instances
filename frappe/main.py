@@ -5,7 +5,8 @@ MODE = 2
 import os
 import scheduling_environment.simulationEnv as sim
 from data_parsers.custom_instance_parser import parse
-from plotting.drawer import plot_gantt_chart
+from plotting.drawer import plot_gantt_chart, draw_precedence_relations
+
 from solution_methods.GA.src.initialization import initialize_run
 from solution_methods.GA.run_GA import run_GA
 from solution_methods.CP_SAT.run_cp_sat import run_CP_SAT
@@ -178,6 +179,7 @@ class FrappeJobShop:
         #return results, jobShopEnv
 
     def plot(self):
+        draw_precedence_relations(self.jobShopEnv)
         plt = plot_gantt_chart(self.jobShopEnv)
         plt.show()
 
