@@ -1,7 +1,7 @@
 ## Job Shop Scheduling Implementation for Frappe Framework
 
 ### Overview:
-This repository provides a comprehensive benchmarking environment for a variety of machine scheduling problems, including Job Shop Scheduling (JSP), Flow Shop Scheduling (FSP), Flexible Job Shop Scheduling (FJSP), FJSP with Assembly constraints (FAJSP), FJSP with Sequence-Dependent Setup Times (FJSP-SDST), and the online FJSP (with online job arrivals). It aims to be a centralized hub for researchers, practitioners, and enthusiasts interested in tackling machine scheduling challenges.
+This repository provides a variety of Job Shop Scheduler implementations, including Job Shop Scheduling (JSP), Flow Shop Scheduling (FSP), Flexible Job Shop Scheduling (FJSP), FJSP with Assembly constraints (FAJSP), FJSP with Sequence-Dependent Setup Times (FJSP-SDST), and the online FJSP (with online job arrivals). It aims to adapt these Schedulers for implemented with the Frappe Framework as a multipurpose scheduling environment.
 
 ### Solution Methods:
 The repository includes exact, heuristic and learning based solution methods, each compatible with one or more machine scheduling problem variants:
@@ -39,12 +39,31 @@ graph LR
   Schedule --> id1[(Database)]
 ```
 
-1. **User Implementation:** 
-2. 
-  
+### User Implementation:
+
+```python
+from frappe_parser import FrappeJobShop
+
+  wo_tree = [ <list of workorders I want to schedule> ]
+  foo = FrappeJobShop(wo_tree)
+  foo.solve_fjsp()
+  foo.plot()
+```
+
+```python
+# In the future
+from frappe_parser import FrappeJobShop
+
+  wo_names = # <Tree type object of work order implying work order prescedence >
+  foo = FrappeJobShop(wo_names)
+  foo.solve_ga()
+  schedule = foo.schedule
+```
+   
 
 ### 🏗️ Repository Structure
 The repository is structured to provide ease of use and flexibility:
+- **Frappe**: Contains the functions to adapt frappe to the Job Shop Environment
 - **Configs**: Contains the configuration files for the solution methods.
 - **Data**: Contains the problem instances for benchmarking for different problem variants.
 - **Data Parsers**: Parsers for configuring the benchmarking instances in the scheduling environment.
