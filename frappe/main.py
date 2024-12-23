@@ -54,11 +54,11 @@ from scheduling_environment import job, operation, machine, jobShop
 #         return len(self._workstations)
 
 
-number_jobs = 0
-number_total_machines = 0
-number_operations = 0
-workstations = {}
-cole = []
+# number_jobs = 0
+# number_total_machines = 0
+# number_operations = 0
+# workstations = {}
+# cole = []
 
 class FrappeJobShop:
     def __init__(self):
@@ -81,6 +81,43 @@ class FrappeJobShop:
             "instance_name": "custom_problem_instance",
             "jobs": [],
             "sequence_dependent_setup_times" : {},
+        }
+
+        self.example_info = {
+            "instance_name": "custom_problem_instance",
+            "nr_machines": 2, 
+            "jobs": [
+                {"job_id": 0, "operations": [
+                    {"operation_id": 0, "processing_times": {"machine_1": 10, "machine_2": 20}, "predecessor": None},
+                    {"operation_id": 1, "processing_times": {"machine_1": 25, "machine_2": 19}, "predecessor": 0}
+                ]},
+                {"job_id": 1, "operations": [
+                    {"operation_id": 2, "processing_times": {"machine_1": 23, "machine_2": 21}, "predecessor": None},
+                    {"operation_id": 3, "processing_times": {"machine_1": 12, "machine_2": 24}, "predecessor": 2}
+                ]},
+                {"job_id": 2, "operations": [
+                    {"operation_id": 4, "processing_times": {"machine_1": 37, "machine_2": 21}, "predecessor": None},
+                    {"operation_id": 5, "processing_times": {"machine_1": 23, "machine_2": 34}, "predecessor": 4}
+                ]}
+            ],
+            "sequence_dependent_setup_times": {
+                "machine_1": [
+                    [0, 25, 30, 35, 40, 45],
+                    [25, 0, 20, 30, 40, 50],
+                    [30, 20, 0, 10, 15, 25],
+                    [35, 30, 10, 0, 5, 10],
+                    [40, 40, 15, 5, 0, 20],
+                    [45, 50, 25, 10, 20, 0]
+                ],
+                "machine_2": [
+                    [0, 21, 30, 35, 40, 45],
+                    [21, 0, 10, 25, 30, 40],
+                    [30, 10, 0, 5, 15, 25],
+                    [35, 25, 5, 0, 10, 20],
+                    [40, 30, 15, 10, 0, 25],
+                    [45, 40, 25, 20, 25, 0]
+                ]
+            }
         }
 
     @staticmethod
@@ -160,23 +197,46 @@ class FrappeJobShop:
 
                 job["operations"].append(o)
 
-                self.processing_info["jobs"].append(job)
+            self.processing_info["jobs"].append(job)
 
     def get_sequence_dependent_setup_times(self):
-        self.processing_info["sequence_dependent_setup_times"] = {
-            self.rworkstations[i] : np.zeros((1000, 1000), dtype=int).tolist()
-                for i in self.rworkstations
-                    }
+        #self.processing_info["sequence_dependent_setup_times"] = {}
+        #n_matrix = self.processing_info["jobs"][-1]["operations"][-1]["operation_id"] +1
+        n_matrix = self.n_operations
+        #n_matrix = self.n_operations
+        for i in self.rworkstations:
+            matrix = np.zeros((n_matrix, n_matrix), dtype=int).tolist()
+            self.processing_info["sequence_dependent_setup_times"][self.rworkstations[i]] = matrix
+        #print(self.processing_info["sequence_dependent_setup_times"]["machine_1"])
 
-    def solve(self):
+    def solve_fjsp_sdst(self):
+        parameters = {
+            "instance": {"problem_instance": "custom_problem_instance"},
+            "solver": {"time_limit": 3600, "model": "fjsp_sdst"},
+            "output": {"logbook": True},
+        }
+        self.jobShopEnv = parse(self.processing_info)
+        self.results, self.jobShopEnv = run_CP_SAT(self.jobShopEnv, **parameters)
+
+    def solve_fjsp(self):
         parameters = {
             "instance": {"problem_instance": "custom_problem_instance"},
             "solver": {"time_limit": 3600, "model": "fjsp"},
             "output": {"logbook": True},
         }
-        jobShopEnv = parse(self.processing_info)
-        self.results, self.jobShopEnv = run_CP_SAT(jobShopEnv, **parameters)
+        self.jobShopEnv = parse(self.processing_info)
+        self.results, self.jobShopEnv = run_CP_SAT(self.jobShopEnv, **parameters)
         #return results, jobShopEnv
+
+    def solve_ga(self):
+        parameters = {"instance": {"problem_instance": "custom_problem_instance"},
+                    "algorithm": {"population_size": 10, "ngen": 10, "seed": 5, "cr": 0.7, "indpb": 0.2, 'multiprocessing': True},
+                    "output": {"logbook": True}
+                    }
+
+        self.jobShopEnv = parse(self.processing_info)
+        population, toolbox, stats, hof = initialize_run(self.jobShopEnv, **parameters)
+        makespan, self.jobShopEnv = run_GA(self.jobShopEnv, population, toolbox, stats, hof, **parameters)
 
     def plot(self):
         draw_precedence_relations(self.jobShopEnv)
@@ -194,9 +254,25 @@ class FrappeJobShop:
         print(self._jobshop.jobs)
         print("=================")
         print(self._jobshop.operations)
+        operation_ids = [op.operation_id for op in self._jobshop.operations]
+        print(operation_ids)
+        #duplicate_operation_ids = [op for op in set(operation_ids) if operation_ids.count(op) > 1]
         print("=================")
         print(self._jobshop.machines)
         print("=================")
+        #print(self._jobshop._sequence_dependent_setup_times)
+
+        from deepdiff import DeepDiff
+            
+        
+        differences = DeepDiff(self.processing_info, self.example_info, ignore_order=True)
+        if not differences:
+            print("The structures are the same!")
+        else:
+            print("Differences found:")
+            print(dir(differences))
+
+
 
     def main(self, wo_names):
         # wos = self.get_wo_names()
@@ -207,8 +283,13 @@ class FrappeJobShop:
 
         ##print(self.processing_info)
         #self.sanity()
-        self.solve()
+
+        self.solve_fjsp()
         self.plot()
+
+    
+
+
 
 
 if __name__ == "__main__":
