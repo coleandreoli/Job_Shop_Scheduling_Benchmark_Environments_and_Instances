@@ -61,11 +61,13 @@ from scheduling_environment import job, operation, machine, jobShop
 # cole = []
 
 class FrappeJobShop:
-    def __init__(self):
+    def __init__(self, wo_names):
         """
         wo(op(machine(alternative machines)))
 
         """
+        self.wo_names = wo_names
+
         self.workstations = {}
         self.rworkstations = {}
         self.operations = {}
@@ -215,7 +217,8 @@ class FrappeJobShop:
             "solver": {"time_limit": 3600, "model": "fjsp_sdst"},
             "output": {"logbook": True},
         }
-        self.jobShopEnv = parse(self.processing_info)
+        self.get_jobshop("fjsp_sdst")
+        #self.jobShopEnv = parse(self.processing_info)
         self.results, self.jobShopEnv = run_CP_SAT(self.jobShopEnv, **parameters)
 
     def solve_fjsp(self):
@@ -224,7 +227,8 @@ class FrappeJobShop:
             "solver": {"time_limit": 3600, "model": "fjsp"},
             "output": {"logbook": True},
         }
-        self.jobShopEnv = parse(self.processing_info)
+        self.get_jobshop("fjsp")
+        #self.jobShopEnv = parse(self.processing_info)
         self.results, self.jobShopEnv = run_CP_SAT(self.jobShopEnv, **parameters)
         #return results, jobShopEnv
 
@@ -233,8 +237,8 @@ class FrappeJobShop:
                     "algorithm": {"population_size": 10, "ngen": 10, "seed": 5, "cr": 0.7, "indpb": 0.2, 'multiprocessing': True},
                     "output": {"logbook": True}
                     }
-
-        self.jobShopEnv = parse(self.processing_info)
+        self.get_jobshop("ga")
+        #self.jobShopEnv = parse(self.processing_info)
         population, toolbox, stats, hof = initialize_run(self.jobShopEnv, **parameters)
         makespan, self.jobShopEnv = run_GA(self.jobShopEnv, population, toolbox, stats, hof, **parameters)
 
@@ -273,6 +277,15 @@ class FrappeJobShop:
             print(dir(differences))
 
 
+    def get_jobshop(self, model):
+        wos = self.get_wo(self.wo_names)
+        self.get_machines(wos)
+        self.parse_wo(wos)
+
+        if model in ["fjsp_sdst", "ga"]:
+            self.get_sequence_dependent_setup_times()
+
+        self.jobShopEnv = parse(self.processing_info)
 
     def main(self, wo_names):
         # wos = self.get_wo_names()
@@ -287,12 +300,9 @@ class FrappeJobShop:
         self.solve_fjsp()
         self.plot()
 
-    
-
-
-
 
 if __name__ == "__main__":
     wo_names = FrappeJobShop.get_wo_names()
-    foo = FrappeJobShop()
-    foo.main(wo_names)
+    foo = FrappeJobShop(wo_names)
+    foo.solve_fjsp()
+    foo.plot()
