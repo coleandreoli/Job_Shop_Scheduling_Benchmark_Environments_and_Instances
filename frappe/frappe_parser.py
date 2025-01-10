@@ -125,7 +125,7 @@ class FrappeJobShop:
     @staticmethod
     def get_wo_names():
         # list of work orders names
-        return frappe.get_all("Work Order")
+        return frappe.get_all("Work Order", order_by="name")
 
     def get_wo(self, wos):
         process_wo = lambda wo: frappe.get_doc("Work Order", wo["name"]).as_dict()[
@@ -176,7 +176,7 @@ class FrappeJobShop:
                 o = {
                     "operation_id": self.n_operations,
                     "processing_times": {},
-                    "predecessor": None,
+                    "predecessors": [None],
                     }
 
                 self.n_operations += 1
@@ -194,18 +194,21 @@ class FrappeJobShop:
                 o["processing_times"] = m
 
                 if predecessors is not None:
-                    o["predecessor"] = self.n_operations - 2
+                    o["predecessors"] = [self.n_operations - 2]
                 predecessors = self.n_operations - 2
+
 
                 job["operations"].append(o)
 
             self.processing_info["jobs"].append(job)
 
-    def get_sequence_dependent_setup_times(self):
+    
+
+    def get_sequence_dependent_setup_times(self, TEST):
         #self.processing_info["sequence_dependent_setup_times"] = {}
         #n_matrix = self.processing_info["jobs"][-1]["operations"][-1]["operation_id"] +1
-        n_matrix = self.n_operations
-        #n_matrix = self.n_operations
+        # n_matrix = self.n_operations
+        n_matrix = TEST
         for i in self.rworkstations:
             matrix = np.zeros((n_matrix, n_matrix), dtype=int).tolist()
             self.processing_info["sequence_dependent_setup_times"][self.rworkstations[i]] = matrix
@@ -218,7 +221,6 @@ class FrappeJobShop:
             "output": {"logbook": True},
         }
         self.get_jobshop("fjsp_sdst")
-        #self.jobShopEnv = parse(self.processing_info)
         self.results, self.jobShopEnv = run_CP_SAT(self.jobShopEnv, **parameters)
 
     def solve_fjsp(self):
@@ -228,7 +230,6 @@ class FrappeJobShop:
             "output": {"logbook": True},
         }
         self.get_jobshop("fjsp")
-        #self.jobShopEnv = parse(self.processing_info)
         self.results, self.jobShopEnv = run_CP_SAT(self.jobShopEnv, **parameters)
         #return results, jobShopEnv
 
@@ -238,7 +239,6 @@ class FrappeJobShop:
                     "output": {"logbook": True}
                     }
         self.get_jobshop("ga")
-        #self.jobShopEnv = parse(self.processing_info)
         population, toolbox, stats, hof = initialize_run(self.jobShopEnv, **parameters)
         makespan, self.jobShopEnv = run_GA(self.jobShopEnv, population, toolbox, stats, hof, **parameters)
 
@@ -266,24 +266,24 @@ class FrappeJobShop:
         print("=================")
         #print(self._jobshop._sequence_dependent_setup_times)
 
-        from deepdiff import DeepDiff
+        # from deepdiff import DeepDiff
             
         
-        differences = DeepDiff(self.processing_info, self.example_info, ignore_order=True)
-        if not differences:
-            print("The structures are the same!")
-        else:
-            print("Differences found:")
-            print(dir(differences))
+        # differences = DeepDiff(self.processing_info, self.example_info, ignore_order=True)
+        # if not differences:
+        #     print("The structures are the same!")
+        # else:
+        #     print("Differences found:")
+        #     print(dir(differences))
 
 
-    def get_jobshop(self, model):
+    def get_jobshop(self, model, TEST):
         wos = self.get_wo(self.wo_names)
         self.get_machines(wos)
         self.parse_wo(wos)
 
         if model in ["fjsp_sdst", "ga"]:
-            self.get_sequence_dependent_setup_times()
+            self.get_sequence_dependent_setup_times(TEST)
 
         self.jobShopEnv = parse(self.processing_info)
 
@@ -292,17 +292,87 @@ class FrappeJobShop:
         wos = self.get_wo(wo_names)
         self.get_machines(wos)
         self.parse_wo(wos)
+
         self.get_sequence_dependent_setup_times()
+
+        self.sanity()
+        # self.solve_fjsp()
+        # self.plot()
+
 
         ##print(self.processing_info)
         #self.sanity()
+def count_machine_uses(self, wks_name):
+    return 1
 
-        self.solve_fjsp()
-        self.plot()
+def debug():
+    wo_names = FrappeJobShop.get_wo_names()[0:4]
+
+
+    doo = FrappeJobShop(wo_names)
+    doo.get_jobshop("fjsp_sdst", 9)
+    doo.solve_fjsp_sdst()
+    # doo.plot()
+    # print(doo.n_operations)
+
+
+    # test_num = 0  # Start testing from 0
+    # max_test_num = 20  # Maximum limit
+    # success = []
+    # fail = []
+    # while test_num <= max_test_num:
+    #     try:
+    #         doo = FrappeJobShop(wo_names)
+    #         doo.get_jobshop("fjsp_sdst", test_num)
+    #         doo.solve_fjsp_sdst()
+    #         print(f"Success with test_num: {test_num}")
+    #         success.append(test_num)
+    #         test_num += 1
+    #     except KeyError as e:
+    #         print(f"KeyError encountered with test_num {test_num}: {e}")
+    #         fail.append(test_num)
+    #         test_num += 1  # Try the next test number
+    #     except Exception as e:
+    #         print(f"Error with test_num {test_num}: {e}")
+    #         fail.append(test_num)
+    #         test_num += 1  # Increase test_num and try again
+
+    # if test_num > max_test_num:
+    #     print("No valid test_num found up to 50.")
+
+    # print(success)
+
+
+
+
+
+
+
+    # foo.sanity()
+
+    # print(foo.processing_info)
+    # print(doo.processing_info)
+
+
+    
+    # import json
+    # with open(r"/home/cole/cole_scripts/Job_Shop_Scheduling_Benchmark_Environments_and_Instances/frappe/data.json", "w") as json_file:
+    #     json.dump(doo.processing_info, json_file, indent=4)
+
+    # doo.solve_fjsp_sdst()
+    # doo.plot()
+
 
 
 if __name__ == "__main__":
     wo_names = FrappeJobShop.get_wo_names()
+
     foo = FrappeJobShop(wo_names)
-    foo.solve_fjsp()
-    foo.plot()
+
+    mode = 1
+
+    if mode == 1:
+        debug()
+    elif mode == 2:
+        foo.solve_fjsp_sdst()
+        foo.plot()
