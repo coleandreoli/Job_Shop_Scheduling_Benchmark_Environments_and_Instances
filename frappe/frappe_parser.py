@@ -60,6 +60,7 @@ from scheduling_environment import job, operation, machine, jobShop
 # workstations = {}
 # cole = []
 
+
 class FrappeJobShop:
     def __init__(self, wo_names):
         """
@@ -82,25 +83,58 @@ class FrappeJobShop:
         self.processing_info = {
             "instance_name": "custom_problem_instance",
             "jobs": [],
-            "sequence_dependent_setup_times" : {},
+            "sequence_dependent_setup_times": {},
         }
 
         self.example_info = {
             "instance_name": "custom_problem_instance",
-            "nr_machines": 2, 
+            "nr_machines": 2,
             "jobs": [
-                {"job_id": 0, "operations": [
-                    {"operation_id": 0, "processing_times": {"machine_1": 10, "machine_2": 20}, "predecessor": None},
-                    {"operation_id": 1, "processing_times": {"machine_1": 25, "machine_2": 19}, "predecessor": 0}
-                ]},
-                {"job_id": 1, "operations": [
-                    {"operation_id": 2, "processing_times": {"machine_1": 23, "machine_2": 21}, "predecessor": None},
-                    {"operation_id": 3, "processing_times": {"machine_1": 12, "machine_2": 24}, "predecessor": 2}
-                ]},
-                {"job_id": 2, "operations": [
-                    {"operation_id": 4, "processing_times": {"machine_1": 37, "machine_2": 21}, "predecessor": None},
-                    {"operation_id": 5, "processing_times": {"machine_1": 23, "machine_2": 34}, "predecessor": 4}
-                ]}
+                {
+                    "job_id": 0,
+                    "operations": [
+                        {
+                            "operation_id": 0,
+                            "processing_times": {"machine_1": 10, "machine_2": 20},
+                            "predecessor": None,
+                        },
+                        {
+                            "operation_id": 1,
+                            "processing_times": {"machine_1": 25, "machine_2": 19},
+                            "predecessor": 0,
+                        },
+                    ],
+                },
+                {
+                    "job_id": 1,
+                    "operations": [
+                        {
+                            "operation_id": 2,
+                            "processing_times": {"machine_1": 23, "machine_2": 21},
+                            "predecessor": None,
+                        },
+                        {
+                            "operation_id": 3,
+                            "processing_times": {"machine_1": 12, "machine_2": 24},
+                            "predecessor": 2,
+                        },
+                    ],
+                },
+                {
+                    "job_id": 2,
+                    "operations": [
+                        {
+                            "operation_id": 4,
+                            "processing_times": {"machine_1": 37, "machine_2": 21},
+                            "predecessor": None,
+                        },
+                        {
+                            "operation_id": 5,
+                            "processing_times": {"machine_1": 23, "machine_2": 34},
+                            "predecessor": 4,
+                        },
+                    ],
+                },
             ],
             "sequence_dependent_setup_times": {
                 "machine_1": [
@@ -109,7 +143,7 @@ class FrappeJobShop:
                     [30, 20, 0, 10, 15, 25],
                     [35, 30, 10, 0, 5, 10],
                     [40, 40, 15, 5, 0, 20],
-                    [45, 50, 25, 10, 20, 0]
+                    [45, 50, 25, 10, 20, 0],
                 ],
                 "machine_2": [
                     [0, 21, 30, 35, 40, 45],
@@ -117,9 +151,9 @@ class FrappeJobShop:
                     [30, 10, 0, 5, 15, 25],
                     [35, 25, 5, 0, 10, 20],
                     [40, 30, 15, 10, 0, 25],
-                    [45, 40, 25, 20, 25, 0]
-                ]
-            }
+                    [45, 40, 25, 20, 25, 0],
+                ],
+            },
         }
 
     @staticmethod
@@ -145,11 +179,13 @@ class FrappeJobShop:
         for ops in wo:
             for op in ops:
                 if not op["workstation"] in self.workstations.values():
-                    self.workstations[f'machine_{len(self.workstations)+1}'] = op["workstation"]
+                    self.workstations[f"machine_{len(self.workstations)+1}"] = op[
+                        "workstation"
+                    ]
                 # Edge case were alternative is not populated
                 for wks in self.get_altertive_workstations(op["operation"]):
                     if not wks in self.workstations.values():
-                        self.workstations[f'machine_{len(self.workstations)+1}'] = wks
+                        self.workstations[f"machine_{len(self.workstations)+1}"] = wks
         # Reversed workstations dict
         self.rworkstations = {v: k for k, v in self.workstations.items()}
         self.n_machines = len(self.rworkstations)
@@ -164,29 +200,30 @@ class FrappeJobShop:
             job = {
                 "job_id": self.n_jobs,
                 "operations": [],
-                   }
-            
+            }
+
             self.n_jobs += 1
             predecessors = None
             for op in ops:
-                if op["time_in_mins"]*60 != int(op["time_in_mins"]*60):
-                    raise ValueError(f'Operation: {op["operation"]} contains < single precision decimal time type: {op["time_in_mins"]}')
-                
+                if op["time_in_mins"] * 60 != int(op["time_in_mins"] * 60):
+                    raise ValueError(
+                        f'Operation: {op["operation"]} contains < single precision decimal time type: {op["time_in_mins"]}'
+                    )
+
                 op_time = int(op["time_in_mins"] * 60)
                 o = {
                     "operation_id": self.n_operations,
                     "processing_times": {},
-                    "predecessors": [None],
-                    }
+                    "predecessors": None,
+                }
 
                 self.n_operations += 1
 
-            
                 m = {}
                 m[self.rworkstations[op["workstation"]]] = op_time
 
                 for wks in self.get_altertive_workstations(op["operation"]):
-                    #o.add_operation_option(self.rworkstations[wks], op_time)
+                    # o.add_operation_option(self.rworkstations[wks], op_time)
                     m[self.rworkstations[wks]] = op_time
                 if len(m) == 0:
                     raise ValueError("no assigned machines")
@@ -195,24 +232,22 @@ class FrappeJobShop:
 
                 if predecessors is not None:
                     o["predecessors"] = [self.n_operations - 2]
-                predecessors = self.n_operations - 2
-
+                predecessors = self.n_operations
 
                 job["operations"].append(o)
 
             self.processing_info["jobs"].append(job)
 
-    
-
-    def get_sequence_dependent_setup_times(self, TEST):
-        #self.processing_info["sequence_dependent_setup_times"] = {}
-        #n_matrix = self.processing_info["jobs"][-1]["operations"][-1]["operation_id"] +1
-        # n_matrix = self.n_operations
-        n_matrix = TEST
+    def get_sequence_dependent_setup_times(self):
+        # self.processing_info["sequence_dependent_setup_times"] = {}
+        # n_matrix = self.processing_info["jobs"][-1]["operations"][-1]["operation_id"] +1
+        n_matrix = self.n_operations
         for i in self.rworkstations:
             matrix = np.zeros((n_matrix, n_matrix), dtype=int).tolist()
-            self.processing_info["sequence_dependent_setup_times"][self.rworkstations[i]] = matrix
-        #print(self.processing_info["sequence_dependent_setup_times"]["machine_1"])
+            self.processing_info["sequence_dependent_setup_times"][
+                self.rworkstations[i]
+            ] = matrix
+        # print(self.processing_info["sequence_dependent_setup_times"]["machine_1"])
 
     def solve_fjsp_sdst(self):
         parameters = {
@@ -231,16 +266,25 @@ class FrappeJobShop:
         }
         self.get_jobshop("fjsp")
         self.results, self.jobShopEnv = run_CP_SAT(self.jobShopEnv, **parameters)
-        #return results, jobShopEnv
 
     def solve_ga(self):
-        parameters = {"instance": {"problem_instance": "custom_problem_instance"},
-                    "algorithm": {"population_size": 10, "ngen": 10, "seed": 5, "cr": 0.7, "indpb": 0.2, 'multiprocessing': True},
-                    "output": {"logbook": True}
-                    }
+        parameters = {
+            "instance": {"problem_instance": "custom_problem_instance"},
+            "algorithm": {
+                "population_size": 10,
+                "ngen": 10,
+                "seed": 5,
+                "cr": 0.7,
+                "indpb": 0.2,
+                "multiprocessing": True,
+            },
+            "output": {"logbook": True},
+        }
         self.get_jobshop("ga")
         population, toolbox, stats, hof = initialize_run(self.jobShopEnv, **parameters)
-        makespan, self.jobShopEnv = run_GA(self.jobShopEnv, population, toolbox, stats, hof, **parameters)
+        makespan, self.jobShopEnv = run_GA(
+            self.jobShopEnv, population, toolbox, stats, hof, **parameters
+        )
 
     def plot(self):
         draw_precedence_relations(self.jobShopEnv)
@@ -260,15 +304,14 @@ class FrappeJobShop:
         print(self._jobshop.operations)
         operation_ids = [op.operation_id for op in self._jobshop.operations]
         print(operation_ids)
-        #duplicate_operation_ids = [op for op in set(operation_ids) if operation_ids.count(op) > 1]
+        # duplicate_operation_ids = [op for op in set(operation_ids) if operation_ids.count(op) > 1]
         print("=================")
         print(self._jobshop.machines)
         print("=================")
-        #print(self._jobshop._sequence_dependent_setup_times)
+        # print(self._jobshop._sequence_dependent_setup_times)
 
         # from deepdiff import DeepDiff
-            
-        
+
         # differences = DeepDiff(self.processing_info, self.example_info, ignore_order=True)
         # if not differences:
         #     print("The structures are the same!")
@@ -276,14 +319,13 @@ class FrappeJobShop:
         #     print("Differences found:")
         #     print(dir(differences))
 
-
-    def get_jobshop(self, model, TEST):
+    def get_jobshop(self, model):
         wos = self.get_wo(self.wo_names)
         self.get_machines(wos)
         self.parse_wo(wos)
 
         if model in ["fjsp_sdst", "ga"]:
-            self.get_sequence_dependent_setup_times(TEST)
+            self.get_sequence_dependent_setup_times()
 
         self.jobShopEnv = parse(self.processing_info)
 
@@ -299,69 +341,35 @@ class FrappeJobShop:
         # self.solve_fjsp()
         # self.plot()
 
-
         ##print(self.processing_info)
-        #self.sanity()
+        # self.sanity()
+
+
 def count_machine_uses(self, wks_name):
     return 1
 
+
 def debug():
-    wo_names = FrappeJobShop.get_wo_names()[0:4]
-
-
+    wo_names = FrappeJobShop.get_wo_names()[2:5]
     doo = FrappeJobShop(wo_names)
-    doo.get_jobshop("fjsp_sdst", 9)
-    doo.solve_fjsp_sdst()
-    # doo.plot()
-    # print(doo.n_operations)
-
-
-    # test_num = 0  # Start testing from 0
-    # max_test_num = 20  # Maximum limit
-    # success = []
-    # fail = []
-    # while test_num <= max_test_num:
-    #     try:
-    #         doo = FrappeJobShop(wo_names)
-    #         doo.get_jobshop("fjsp_sdst", test_num)
-    #         doo.solve_fjsp_sdst()
-    #         print(f"Success with test_num: {test_num}")
-    #         success.append(test_num)
-    #         test_num += 1
-    #     except KeyError as e:
-    #         print(f"KeyError encountered with test_num {test_num}: {e}")
-    #         fail.append(test_num)
-    #         test_num += 1  # Try the next test number
-    #     except Exception as e:
-    #         print(f"Error with test_num {test_num}: {e}")
-    #         fail.append(test_num)
-    #         test_num += 1  # Increase test_num and try again
-
-    # if test_num > max_test_num:
-    #     print("No valid test_num found up to 50.")
-
-    # print(success)
-
-
-
-
-
-
-
-    # foo.sanity()
-
-    # print(foo.processing_info)
-    # print(doo.processing_info)
-
-
-    
-    # import json
-    # with open(r"/home/cole/cole_scripts/Job_Shop_Scheduling_Benchmark_Environments_and_Instances/frappe/data.json", "w") as json_file:
-    #     json.dump(doo.processing_info, json_file, indent=4)
 
     # doo.solve_fjsp_sdst()
     # doo.plot()
 
+    doo.get_jobshop("fjsp_sdst")
+    # print(doo.processing_info)
+
+    # Save to json
+    SAVE = 1
+
+    if SAVE == 1:
+        import json
+
+        with open(
+            r"/home/cole/cole_scripts/Job_Shop_Scheduling_Benchmark_Environments_and_Instances/frappe/data.json",
+            "w",
+        ) as json_file:
+            json.dump(doo.processing_info, json_file, indent=4)
 
 
 if __name__ == "__main__":
