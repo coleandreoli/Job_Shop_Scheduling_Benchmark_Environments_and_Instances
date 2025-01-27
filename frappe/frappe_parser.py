@@ -289,7 +289,7 @@ class FrappeJobShop:
 
         self.jobShopEnv = parse(self.processing_info)
 
-    def get_optimizer_schedule(self, start_date="2024-01-01:00:00:00"):
+    def get_optimizer_schedule(self, start_datetime):
         # out = {
         #     "id": "WO-001",
         #     "name": "ItemA:SubitemA",
@@ -298,20 +298,22 @@ class FrappeJobShop:
         #     "progress": 100,
         #     "dependencies": "WO-002,WO-003",
         # }
-        start_date = datetime.strptime(start_date, "%Y-%m-%d:%H:%M:%S")
+        start_datetime = datetime.fromisoformat(start_datetime)
         out = []
         for i, jobs in enumerate(self.results["Schedule"]):
+            # Jobs don't have dependencies, operations do
+            # op_deps = [d["task"] for d in jobs["tasks"][1:]]
             out.append(
                 {
                     "id": jobs["job"],
                     "name": self.wo_names[i]["name"],
-                    "start": start_date
+                    "start": start_datetime
                     + timedelta(seconds=min([t["start"] for t in jobs["tasks"]])),
-                    "end": start_date
+                    "end": start_datetime
                     + timedelta(
                         seconds=max([t["start"] + t["duration"] for t in jobs["tasks"]])
                     ),
-                    "dependencies": [d["task"] for d in jobs["tasks"][1:]],
+                    "dependencies": None,
                 }
             )
         return out
@@ -333,12 +335,13 @@ class FrappeJobShop:
 
 
 def debug():
-    wo_names = FrappeJobShop.get_wo_names()[2:5]
+    wo_names = FrappeJobShop.get_wo_names()  # [2:5]
     doo = FrappeJobShop(wo_names)
 
     # doo.get_jobshop("fjsp")
     doo.solve_fjsp()
-    doo.get_optimizer_schedule()
+    optimizer = doo.get_optimizer_schedule(start_datetime="2025-01-27T08:00:00")
+    print(optimizer)
 
     # Save to json
     SAVE = 0
