@@ -1,9 +1,4 @@
-PRINTS = False
-OUTPUT = False
-MODE = 2
-
 import os
-import scheduling_environment.simulationEnv as sim
 from data_parsers.custom_instance_parser import parse
 from plotting.drawer import plot_gantt_chart, draw_precedence_relations
 
@@ -17,7 +12,7 @@ os.chdir("/home/cole/madrid/sites")
 import frappe
 
 frappe.connect("test", db_name="cole")
-from scheduling_environment import job, operation, machine, jobShop
+# from scheduling_environment import job, operation, machine, jobShop
 
 
 class FrappeJobShop:
@@ -291,12 +286,14 @@ class FrappeJobShop:
 
     def get_optimizer_schedule(self, start_datetime):
         # out = {
-        #     "id": "WO-001",
-        #     "name": "ItemA:SubitemA",
-        #     "start": "2024-01-01",
-        #     "end": "2024-01-10",
-        #     "progress": 100,
-        #     "dependencies": "WO-002,WO-003",
+        #     "work_order": "MFG-WO-2024-00016",
+        #     "production_item": "Pie Crust",
+        #     "item_name": "Pie Crust",
+        #     "dependent_on": None,
+        #     "planned_start_date": datetime.datetime(2024, 1, 1, 7, 10),
+        #     "planned_end_date": datetime.datetime(2024, 1, 1, 13, 50),
+        #     "status": "Not Started",
+        #     "level": 0,
         # }
         start_datetime = datetime.fromisoformat(start_datetime)
         out = []
@@ -313,6 +310,7 @@ class FrappeJobShop:
                     + timedelta(
                         seconds=max([t["start"] + t["duration"] for t in jobs["tasks"]])
                     ),
+                    "progress": 10,
                     "dependencies": None,
                 }
             )
