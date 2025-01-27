@@ -20,47 +20,6 @@ frappe.connect("test", db_name="cole")
 from scheduling_environment import job, operation, machine, jobShop
 
 
-# class Workstations:
-#     def __init__(self) -> None:
-#         self._workstations = []
-#         self._mapped_names = {}
-
-#     def add_workstation(self, machine: dict):
-#         for ma in machine.keys():
-#             if ma not in self._workstations:
-#                 self._workstations.append(ma)
-
-#     @property
-#     def workstations(self):
-#         return self._workstations
-
-#     @property
-#     def mapped_names(self):
-#         return self._mapped_names
-
-#     def processing_times(self, machine):
-#         # all other workstations are 0 except in machine
-#         processing_time = {}
-#         for i, wo in enumerate(self._workstations):
-#             self._mapped_names[f"machine_{i+1}"] = wo
-#             if wo not in machine:
-#                 processing_time[f"machine_{i+1}"] = 1
-#             else:
-#                 processing_time[f"machine_{i+1}"] = int(machine[wo])
-#         return processing_time
-
-#     @property
-#     def num_of_workstations(self):
-#         return len(self._workstations)
-
-
-# number_jobs = 0
-# number_total_machines = 0
-# number_operations = 0
-# workstations = {}
-# cole = []
-
-
 class FrappeJobShop:
     def __init__(self, wo_names):
         """
@@ -223,7 +182,6 @@ class FrappeJobShop:
                 m[self.rworkstations[op["workstation"]]] = op_time
 
                 for wks in self.get_altertive_workstations(op["operation"]):
-                    # o.add_operation_option(self.rworkstations[wks], op_time)
                     m[self.rworkstations[wks]] = op_time
                 if len(m) == 0:
                     raise ValueError("no assigned machines")
@@ -239,17 +197,16 @@ class FrappeJobShop:
             self.processing_info["jobs"].append(job)
 
     def get_sequence_dependent_setup_times(self):
-        # self.processing_info["sequence_dependent_setup_times"] = {}
-        # n_matrix = self.processing_info["jobs"][-1]["operations"][-1]["operation_id"] +1
+        # TODO: sequence dependent setup times are required for the FJSP-SDST model
         n_matrix = self.n_operations
         for i in self.rworkstations:
             matrix = np.zeros((n_matrix, n_matrix), dtype=int).tolist()
             self.processing_info["sequence_dependent_setup_times"][
                 self.rworkstations[i]
             ] = matrix
-        # print(self.processing_info["sequence_dependent_setup_times"]["machine_1"])
 
     def solve_fjsp_sdst(self):
+        # TODO: SDST
         parameters = {
             "instance": {"problem_instance": "custom_problem_instance"},
             "solver": {"time_limit": 3600, "model": "fjsp_sdst"},
@@ -259,6 +216,7 @@ class FrappeJobShop:
         self.results, self.jobShopEnv = run_CP_SAT(self.jobShopEnv, **parameters)
 
     def solve_fjsp(self):
+        # Does not require SDST
         parameters = {
             "instance": {"problem_instance": "custom_problem_instance"},
             "solver": {"time_limit": 3600, "model": "fjsp"},
@@ -268,6 +226,7 @@ class FrappeJobShop:
         self.results, self.jobShopEnv = run_CP_SAT(self.jobShopEnv, **parameters)
 
     def solve_ga(self):
+        # TODO: Requires SDST
         parameters = {
             "instance": {"problem_instance": "custom_problem_instance"},
             "algorithm": {
@@ -329,38 +288,31 @@ class FrappeJobShop:
 
         self.jobShopEnv = parse(self.processing_info)
 
-    def main(self, wo_names):
-        # wos = self.get_wo_names()
-        wos = self.get_wo(wo_names)
-        self.get_machines(wos)
-        self.parse_wo(wos)
+    # def main(self, wo_names):
+    #     # wos = self.get_wo_names()
+    #     wos = self.get_wo(wo_names)
+    #     self.get_machines(wos)
+    #     self.parse_wo(wos)
 
-        self.get_sequence_dependent_setup_times()
+    #     self.get_sequence_dependent_setup_times()
 
-        self.sanity()
-        # self.solve_fjsp()
-        # self.plot()
+    #     self.sanity()
+    #     # self.solve_fjsp()
+    #     # self.plot()
 
-        ##print(self.processing_info)
-        # self.sanity()
-
-
-def count_machine_uses(self, wks_name):
-    return 1
+    #     ##print(self.processing_info)
+    #     # self.sanity()
 
 
 def debug():
     wo_names = FrappeJobShop.get_wo_names()[2:5]
     doo = FrappeJobShop(wo_names)
 
-    # doo.solve_fjsp_sdst()
-    # doo.plot()
-
     doo.get_jobshop("fjsp_sdst")
-    # print(doo.processing_info)
+    print(doo.processing_info)
 
     # Save to json
-    SAVE = 1
+    SAVE = 0
 
     if SAVE == 1:
         import json
@@ -377,10 +329,13 @@ if __name__ == "__main__":
 
     foo = FrappeJobShop(wo_names)
 
-    mode = 1
+    mode = 3
 
     if mode == 1:
         debug()
     elif mode == 2:
         foo.solve_fjsp_sdst()
+        foo.plot()
+    elif mode == 3:
+        foo.solve_fjsp()
         foo.plot()
