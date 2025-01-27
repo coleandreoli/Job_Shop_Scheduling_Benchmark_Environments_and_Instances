@@ -361,13 +361,16 @@ if __name__ == "__main__":
 
     foo = FrappeJobShop(wo_names)
 
-    mode = 1
+    mode = 2
 
     if mode == 1:
         debug()
     elif mode == 2:
-        foo.solve_fjsp_sdst()
+        foo.solve_fjsp()
         foo.plot()
     elif mode == 3:
-        foo.solve_fjsp()
+        foo.solve_fjsp_sdst()
+        foo.plot()
+    elif mode == 4:
+        foo.solve_ga()
         foo.plot()
