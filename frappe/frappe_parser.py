@@ -11,7 +11,7 @@ from solution_methods.GA.src.initialization import initialize_run
 from solution_methods.GA.run_GA import run_GA
 from solution_methods.CP_SAT.run_cp_sat import run_CP_SAT
 import numpy as np
-import warnings
+from datetime import datetime, timedelta
 
 os.chdir("/home/cole/madrid/sites")
 import frappe
@@ -164,6 +164,7 @@ class FrappeJobShop:
             self.n_jobs += 1
             predecessors = None
             for op in ops:
+                # Convert time to seconds
                 if op["time_in_mins"] * 60 != int(op["time_in_mins"] * 60):
                     raise ValueError(
                         f'Operation: {op["operation"]} contains < single precision decimal time type: {op["time_in_mins"]}'
@@ -288,6 +289,33 @@ class FrappeJobShop:
 
         self.jobShopEnv = parse(self.processing_info)
 
+    def get_optimizer_schedule(self, start_date="2024-01-01:00:00:00"):
+        # out = {
+        #     "id": "WO-001",
+        #     "name": "ItemA:SubitemA",
+        #     "start": "2024-01-01",
+        #     "end": "2024-01-10",
+        #     "progress": 100,
+        #     "dependencies": "WO-002,WO-003",
+        # }
+        start_date = datetime.strptime(start_date, "%Y-%m-%d:%H:%M:%S")
+        out = []
+        for i, jobs in enumerate(self.results["Schedule"]):
+            out.append(
+                {
+                    "id": jobs["job"],
+                    "name": self.wo_names[i]["name"],
+                    "start": start_date
+                    + timedelta(seconds=min([t["start"] for t in jobs["tasks"]])),
+                    "end": start_date
+                    + timedelta(
+                        seconds=max([t["start"] + t["duration"] for t in jobs["tasks"]])
+                    ),
+                    "dependencies": [d["task"] for d in jobs["tasks"][1:]],
+                }
+            )
+        return out
+
     # def main(self, wo_names):
     #     # wos = self.get_wo_names()
     #     wos = self.get_wo(wo_names)
@@ -308,8 +336,9 @@ def debug():
     wo_names = FrappeJobShop.get_wo_names()[2:5]
     doo = FrappeJobShop(wo_names)
 
-    doo.get_jobshop("fjsp_sdst")
-    print(doo.processing_info)
+    # doo.get_jobshop("fjsp")
+    doo.solve_fjsp()
+    doo.get_optimizer_schedule()
 
     # Save to json
     SAVE = 0
@@ -329,7 +358,7 @@ if __name__ == "__main__":
 
     foo = FrappeJobShop(wo_names)
 
-    mode = 3
+    mode = 1
 
     if mode == 1:
         debug()
