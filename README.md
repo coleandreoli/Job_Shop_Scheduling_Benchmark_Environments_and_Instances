@@ -1,13 +1,10 @@
-![python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
-[![License: GPLv3](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ai-for-decision-making-tue/Job_Shop_Scheduling_Benchmark_Environments_and_Instances/blob/main/LICENSE)
+## Job Shop Scheduling Implementation for Frappe Framework
 
-## Job Shop Scheduling Benchmark: Environments and Instances for Learning and Non-learning Methods
+### Overview:
+This repository provides a variety of Job Shop Scheduler implementations, including Job Shop Scheduling (JSP), Flow Shop Scheduling (FSP), Flexible Job Shop Scheduling (FJSP), FJSP with Assembly constraints (FAJSP), FJSP with Sequence-Dependent Setup Times (FJSP-SDST), and the online FJSP (with online job arrivals). It aims to adapt these Schedulers for implemented with the Frappe Framework as a multipurpose scheduling environment.
 
-### 📖 Overview:
-This repository provides a comprehensive benchmarking environment for a variety of machine scheduling problems, including Job Shop Scheduling (JSP), Flow Shop Scheduling (FSP), Flexible Job Shop Scheduling (FJSP), FJSP with Assembly constraints (FAJSP), FJSP with Sequence-Dependent Setup Times (FJSP-SDST), and the online FJSP (with online job arrivals). It aims to be a centralized hub for researchers, practitioners, and enthusiasts interested in tackling machine scheduling challenges.
-
-### 🛠 Solution Methods:
-The repository includes exact, heuristic and learning based solution methods, each compatible with one or more machine scheduline problem variants:
+### Solution Methods:
+The repository includes exact, heuristic and learning based solution methods, each compatible with one or more machine scheduling problem variants:
 
 | Solution methods | Type | JSP | FSP | FJSP | FJSP SDST | FAJSP | Online (F)JSP |
 | :----: | :---:| :---:| :---: | :---: | :---: | :---: | :---: |
@@ -19,54 +16,54 @@ The repository includes exact, heuristic and learning based solution methods, ea
 | L2D | DRL |✓ | ✓ | | | | |
 | DANIEL | DRL | ✓ | ✓ | ✓ | | | |  
 
-### 🚀 How to use:
+### Data Flow Overview:
 
-Here we provide some short examples on how to use the solution methods in this repository. For more detailed information and more examples, please refer to the tutorials [here][2] and [here][3].
+```mermaid
+graph LR
+  subgraph Frappe
+    id1[(Database)] --> Jobs
+    Jobs --> Operations
+    Operations --> Machines
+    Operations --> AlternativeWorkstations
+    AlternativeWorkstations --> Machines
+    end
 
-1. **Dispatching Rules:** 
-  ```python
-  from solution_methods.dispatching_rules import run_dispatching_rules
-  from solution_methods.helper_functions import load_job_shop_env, load_parameters
+  subgraph JobShopEnvironment
+    JobShop --> Solver
+    Machines --> JobShop
+    Operations --> JobShop
+    Jobs--> JobShop
+    Solver --> Schedule
+    end
   
-  parameters = load_parameters("configs/dispatching_rules.toml")
-  jobShopEnv = load_job_shop_env(parameters['instance'].get('problem_instance'))
-  
-  makespan, jobShopEnv = run_dispatching_rules(jobShopEnv, **parameters)
-  ```
-
-2. **Genetic Algorithm:**  
-  ```python
-  from solution_methods.helper_functions import load_job_shop_env, load_parameters
-  from solution_methods.GA.run_GA import run_GA
-  from solution_methods.GA.src.initialization import initialize_run
-  
-  parameters = load_parameters("configs/genetic_algorithm.toml")
-  jobShopEnv = load_job_shop_env(parameters['instance'].get('problem_instance'))
-
-  population, toolbox, stats, hof = initialize_run(jobShopEnv, **parameters)
-  makespan, jobShopEnv = run_GA(jobShopEnv, population, toolbox, stats, hof, **parameters)  
+  Schedule --> id1[(Database)]
 ```
 
-3. **L2D (DRL-based):**
-  ```python
-  from solution_methods.L2D.src.run_L2D import run_L2D
-  from solution_methods.helper_functions import load_job_shop_env, load_parameters
+### User Implementation:
+
+```python
+from frappe_parser import FrappeJobShop
+
+  wo_names = [ <list of workorders I want to schedule> ]
+  foo = FrappeJobShop(wo_names)
+  foo.solve_fjsp()
+  foo.plot()
+```
+
+```python
+# In the future
+from frappe_parser import FrappeJobShop
+
+  wo_tree = # <Tree type object of work order implying work order prescedence >
+  foo = FrappeJobShop(wo_tree)
+  foo.solve_ga()
+  schedule = foo.schedule
+```
    
-  parameters = load_parameters("configs/L2D.toml")
-  jobShopEnv = load_job_shop_env(parameters['instance'].get('problem_instance'))
-  makespan, jobShopEnv = run_L2D(jobShopEnv, **parameters)
-  ```
-
-### 🖼️ Plotting:
-We provide plotting functions to draw both the precedence relations  between operationsand the Gantt chart for the job shop scheduling problems:
-
-
-| ![Precedence Constraints](assets/images/precedence_constraints.PNG) | ![Gantt Chart](assets/images/gantt_chart.PNG) |
-|---------------------------------------------------------------------|------------------------------------------------|
-
 
 ### 🏗️ Repository Structure
 The repository is structured to provide ease of use and flexibility:
+- **Frappe**: Contains the functions to adapt frappe to the Job Shop Environment
 - **Configs**: Contains the configuration files for the solution methods.
 - **Data**: Contains the problem instances for benchmarking for different problem variants.
 - **Data Parsers**: Parsers for configuring the benchmarking instances in the scheduling environment.
@@ -76,7 +73,7 @@ The repository is structured to provide ease of use and flexibility:
 
 
 ### 📄 Reference
-For more detailed information, please refer to our paper. If you use this repository in your research, please consider citing the following paper:
+For more detailed information, please refer this paper. If you use this repository in your research, please consider citing the following paper:
 
 > Reijnen, R., van Straaten, K., Bukhsh, Z., & Zhang, Y. (2023). 
 > Job Shop Scheduling Benchmark: Environments and Instances for Learning and Non-learning Methods. 
@@ -95,5 +92,3 @@ Or, using the following BibTeX entry:
 A preprint of this paper is available or [arXiv][1]. Please note that this version is a placeholder, and will be updated shortely with the final version.
 
 [1]: https://arxiv.org/abs/2308.12794
-[2]: https://github.com/ai-for-decision-making-tue/Job_Shop_Scheduling_Benchmark_Environments_and_Instances/blob/main/tutorial_benchmark_environment.ipynb
-[3]: https://github.com/ai-for-decision-making-tue/Job_Shop_Scheduling_Benchmark_Environments_and_Instances/blob/main/tutorial_custom_problem_instance.ipynb
